@@ -12,8 +12,10 @@ services:
     depends_on:
       - postgres
       - redis
-    ports:
-      - '127.0.0.1:3000:3000'
+    # CRITICAL: Attach to Dokploy's Traefik network for SSL/Routing
+    networks:
+      - default
+      - dokploy-network
     environment:
       - NODE_ENV=production
       - RAILS_ENV=production
@@ -37,15 +39,13 @@ services:
   postgres:
     image: pgvector/pgvector:pg16
     restart: always
-    ports:
-      - '127.0.0.1:5432:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
     environment:
       - POSTGRES_DB=chatwoot
       - POSTGRES_USER=postgres
-      # Please provide your own password.
-      - POSTGRES_PASSWORD=
+      # Set via .env, fallback provided here
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-chatwoot_secure_pass123}
 
   redis:
     image: redis:alpine
@@ -54,10 +54,14 @@ services:
     env_file: .env
     volumes:
       - redis_data:/data
-    ports:
-      - '127.0.0.1:6379:6379'
 
 volumes:
   storage_data:
   postgres_data:
   redis_data:
+
+# CRITICAL: Define the Dokploy external network
+networks:
+  default:
+  dokploy-network:
+    external: true
